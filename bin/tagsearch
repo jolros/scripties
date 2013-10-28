@@ -1,0 +1,80 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+@ARGV || die 'Must provide tags as arguments';
+
+my @andnottags;
+my @andtags;
+my @ortags;
+
+for my $arg (@ARGV) {
+    if ($arg =~ /^([-+]?)(.+)$/) {
+        if (!$1)          { push( @ortags, $2 ); }
+        elsif ($1 eq '-') { push( @andnottags, $2 ); }
+        elsif ($1 eq '+') { push( @andtags, $2 ); }
+    }
+}
+
+my @clauses;
+if (@ortags)     { push @clauses, '('. join(' OR ', map("tag:$_", @ortags)). ')'; }
+if (@andnottags) { push @clauses, join(' AND ', map("NOT tag:$_", @andnottags)); }
+if (@andtags)    { push @clauses, join(' AND ', map("tag:$_", @andtags)); }
+
+my @command = ('mdfind', '-onlyin', './');
+push @command, join(' AND ', @clauses);
+
+#print 'Running: '. join(' ', @command). "\n";
+system( @command );
+
+=head1 NAME
+
+tagsearch - searches a Mavericks system for tagged files and directories
+
+=head1 USAGE
+
+> tagsearch project1 project3
+./Documents/Work/Project 1 Intro
+./Documents/Work/Project 1 Data
+./Documents/Work/Project 3 Data
+./Documents/Work/Misc Project Contents
+
+> tagsearch project1 project3 -contacts
+./Documents/Work/Project 1 Intro
+./Documents/Work/Project 1 DATA
+./Documents/Work/Project 3 Data
+
+> tagsearch project1 project3 -contacts +data
+./Documents/Work/Project 1 Data
+./Documents/Work/Project 3 Data
+
+=head1 DESCRIPTION
+
+This script will produce commands for mdfind, searching the current
+working directory and deeper for files and directories tagged as
+specified by the script's arguments. By default, items containing any
+of the specified tags will be returned. Adding a - before a tag will
+ensure items do not contain that tag. Adding a + before a tag will
+ensure that items must contain that tag.
+
+For instance, running "tagsearch +fruit -tropical green red orange"
+will return green, red, and orange fruit that are not tropical.
+Assuming you've chosen logical tags, of course.
+
+Tag modifiers can be in any order.
+
+=head1 AUTHOR
+
+Joel Rosenberg https://github.com/jolros
+
+=head1 LICENSE
+
+This library is free software. You can redistribute it
+and/or modify it under the same terms as Perl itself.
+
+=head1 DISCLAIMER OF WARRANTY
+
+The author assumes no warranty for the software. Use at your own risk.
+
+=cut
